@@ -20,8 +20,7 @@ except:
 
 
 api_key = os.getenv("OPENAI_API_KEY")
-# Initialize embeddings model
-            # embedding_model = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key="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")
+
 embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 def extract_text(file) -> tuple[str, str]:
