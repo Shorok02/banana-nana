@@ -2,7 +2,7 @@ import chromadb
 from uuid import uuid4
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
+from models import FileModel
 # --------------------------
 # LAZY LOADING FACTORY PATTERNS
 # --------------------------
