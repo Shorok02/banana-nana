@@ -43,23 +43,26 @@ async def debug_chroma():
     return all_data
 
 
+@router.get("/chroma/chunks/{file_id}")
+async def debug_chroma(file_id: str = None):
+    """
+    Debug endpoint to inspect ChromaDB collection.
+    If file_id is provided, shows only chunks for that file.
+    """
+    collection = get_chroma_collection()
 
-"becf43aa-7012-4829-9bd6-0e7307577158",
-    "77751129-b31b-4a81-9703-9044833dbb85",
-    "f41da606-31d5-4968-aa82-dfb3d5ba49b8",
-    "79c93f5c-e347-4460-998c-40cc25d98f59",
-    "825817b5-8b8b-4abf-9994-d17b049f0cf0",
-    "df4d217e-b754-430c-92a7-006ea1ba0dcf",
-    "d16aaefb-e349-43a9-95d3-7e71bac2eaa7",
-    "b8e64061-16ae-424a-a9fd-fa912ed8b693",
-    "a3acb4c3-f18b-402f-b807-45e511158c86",
-    "50fe00ee-fb4c-411a-a9c4-c3a98938c9f4",
-    "3fbb9e94-c153-47ed-bc83-79630e654539",
-    "2b897331-f933-47c6-b530-10fb8a18fd68",
-    "21d3d91f-eb68-4097-a63c-d2e44960dfbd",
-    "fcdc6a89-a354-4a96-9e8a-cc51248cf751",
-    "aaf1f323-bf14-4adf-b746-0dbd66ef050e",
-    "bd3a84d6-ac2a-4236-bcf0-b1e382293546"
+    if file_id:
+        # Query by file_id
+        results = collection.get(
+            where={"file_id": file_id},
+            include=["documents", "metadatas"]  # exclude embeddings for safety
+        )
+        return results
+    else:
+        # Get everything (documents + metadatas only)
+        all_data = collection.get(include=["documents", "metadatas"])
+        return all_data
+
 
     """
     Debug endpoint to inspect ChromaDB collection.
