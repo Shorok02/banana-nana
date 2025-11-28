@@ -24,24 +24,28 @@ def get_embedding_model():
 # ----------------------------------------------------
 # PROCESS FILE FUNCTION
 # ----------------------------------------------------
+from uuid import uuid4
+
 async def process_file_upload(file, db):
-    # Lazy-load everything inside the function
+     # Lazy-load everything inside the function
     embedding_model = get_embedding_model()
     collection = get_chroma_collection()
-
-    # 1) Extract text
+    # 1. Extract text
     content, file_type = extract_text(file)
 
-    # 2) Split into chunks
+    # 2. Chunk text
     splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
     chunks = splitter.split_text(content)
 
-    # 3) Embed text
+    # 3. Generate a single file_id and chunk IDs
+    file_id = str(uuid4())  # file-level ID, will match SQLite
     chunk_ids = [str(uuid4()) for _ in chunks]
-    chunk_metadatas = [{"file_id": str(uuid4())} for _ in chunks]
-    chunk_embeddings = [embedding_model.embed_query(c) for c in chunks]
+    chunk_metadatas = [{"file_id": file_id} for _ in chunks]
 
-    # 4) Store in ChromaDB
+    # 4. Generate embeddings
+    chunk_embeddings = [embedding_model.embed_query(chunk) for chunk in chunks]
+
+    # 5. Add to ChromaDB
     collection.add(
         documents=chunks,
         metadatas=chunk_metadatas,
@@ -49,10 +53,10 @@ async def process_file_upload(file, db):
         embeddings=chunk_embeddings
     )
 
-    # 5) Record in DB
-    file.file.seek(0)  # reset pointer
+    # 6. Save file-level metadata in SQLite
+    file.file.seek(0)
     db_file = FileModel(
-        id=chunk_metadatas[0]["file_id"],
+        id=file_id,  # same file_id as chunks
         filename=file.filename,
         filetype=file_type,
         size_bytes=len(file.file.read()),
@@ -63,11 +67,7 @@ async def process_file_upload(file, db):
     db.add(db_file)
     db.commit()
 
-    return {
-        "file_id": db_file.id,
-        "chunks_count": len(chunks),
-        "status": "processed"
-    }
+    return {"file_id": db_file.id, "chunks_count": len(chunks), "status": "processed"}
 
 def extract_text(file) -> tuple[str, str]:
     filename = file.filename.lower()
