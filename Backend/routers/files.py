@@ -11,9 +11,7 @@ async def upload_file_api(
     file: UploadFile = File(...),
     db: Session = Depends(get_db)
 ):
-    embedding_model = get_embedding_model()
-    collection = get_chroma_collection()
-    result = await process_file_upload(file, db, embedding_model=embedding_model, collection=collection)
+    result = await process_file_upload(file, db)
     return {"status": "success", "chunks": result["chunks_count"]}
 
 
