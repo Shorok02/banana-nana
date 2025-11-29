@@ -65,6 +65,8 @@ from langchain_core.prompts import PromptTemplate
 from langchain_classic.chains.llm import LLMChain
 from langchain_groq import ChatGroq  # pip install langchain-groq
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 
 # ------------------------------------------------
@@ -108,7 +110,7 @@ def build_llm_chain():
     If answer is not in the context, say: "I don't know."
     """)
 
-    llm = ChatGroq(model="llama3-70b-8192", api_key=os.getenv("GROQ_API_KEY"))
+    llm = ChatGroq(model="llama-3.3-70b-versatile", api_key=os.getenv("GROQ_API_KEY"))
 
     return LLMChain(llm=llm, prompt=prompt)
 
