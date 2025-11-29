@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from services.files import process_file_upload, get_chroma_collection, get_embedding_model
+from services.files import get_chroma_collection, get_embedding_model
 from models import FileModel
 
 router = APIRouter(prefix="/debug", tags=["Debug"])
