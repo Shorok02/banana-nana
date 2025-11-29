@@ -68,7 +68,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-
+ 
 # ------------------------------------------------
 # 1) Connect to Chroma
 # ------------------------------------------------
