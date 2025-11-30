@@ -1,129 +1,95 @@
-import os
-import tempfile
 import uuid
-from typing import Tuple, List
-from sqlalchemy.exc import SQLAlchemyError
-
-# keep your existing imports
-import chromadb
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+from typing import List, Tuple
+from sqlalchemy.orm import Session
+from database import SessionLocal
 from models import FileModel
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# IMPORTANT: import your Session factory (adjust name/path to match your project)
-from database import SessionLocal  # <- SessionLocal() yields new Session
+from clients.embedding_client import get_hf_embeddings as get_embedding_model
+from clients.vectordb_client import get_collection as get_chroma_collection
 
-# Factory functions (keep or adjust)
-def get_chroma_client():
-    return chromadb.PersistentClient(path="chromadb_data")
-
-def get_chroma_collection():
-    client = get_chroma_client()
-    return client.get_or_create_collection(name="file_chunks")
-
-def get_embedding_model():
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
-
+# ------------------------------
+# Step 1: Extract text
+# ------------------------------
 def extract_text_from_bytes(data: bytes, filename: str) -> Tuple[str, str]:
     filename_l = filename.lower()
-    file_type = "txt"
-    content = ""
-    # Note: these read from bytes, not from UploadFile.file (we saved a bytes buffer)
     if filename_l.endswith(".txt"):
-        content = data.decode("utf-8", errors="replace")
-        file_type = "txt"
+        return data.decode("utf-8", errors="replace"), "txt"
     elif filename_l.endswith(".pdf"):
         import fitz
         doc = fitz.open(stream=data, filetype="pdf")
-        content = "\n".join([page.get_text() for page in doc])
-        file_type = "pdf"
+        return "\n".join([p.get_text() for p in doc]), "pdf"
     elif filename_l.endswith(".docx"):
         import io, docx
         doc = docx.Document(io.BytesIO(data))
-        content = "\n".join([p.text for p in doc.paragraphs])
-        file_type = "docx"
+        return "\n".join([p.text for p in doc.paragraphs]), "docx"
     else:
         raise ValueError("Unsupported file type")
-    return content, file_type
 
+# ------------------------------
+# Step 2: Split into chunks
+# ------------------------------
+def split_text_chunks(content: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+    return splitter.split_text(content)
 
-def process_file_upload_sync(file_bytes: bytes, filename: str) -> dict:
-    """
-    Synchronous, thread-safe processing function you can call from BackgroundTasks
-    or run in a thread via asyncio.to_thread.
-    - Creates its own DB session (SessionLocal).
-    - Creates embedding model/collection inside the thread for thread-safety.
-    """
-    # Create resources inside the worker thread
-    embedding_model = get_embedding_model()
-    collection = get_chroma_collection()
+# ------------------------------
+# Step 3: Create metadata
+# ------------------------------
+def create_chunk_metadatas(file_id: str, filename: str, chunks: List[str]):
+    return [{"file_id": file_id, "filename": filename, "chunk_index": idx} for idx in range(len(chunks))]
 
-    file_id = str(uuid.uuid4())
-    db = SessionLocal()
+# ------------------------------
+# Step 4: Embed chunks
+# ------------------------------
+def embed_chunks(chunks: List[str]):
+    model = get_embedding_model()
     try:
-        # 1. Extract text
-        content, file_type = extract_text_from_bytes(file_bytes, filename)
+        return model.embed_documents(chunks)
+    except AttributeError:
+        return [model.embed_query(c) for c in chunks]
 
-        # 2. Chunk text (you can refine afterward)
-        splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-        chunks = splitter.split_text(content)
+# ------------------------------
+# Step 5: Store in Chroma
+# ------------------------------
+def store_chunks_in_chroma(chunks: List[str], metadatas: List[dict], embeddings: List[List[float]]):
+    collection = get_chroma_collection()
+    ids = [str(uuid.uuid4()) for _ in chunks]
+    collection.add(documents=chunks, metadatas=metadatas, embeddings=embeddings, ids=ids)
+    return ids
 
-        # 3. IDs + metadata
-        chunk_ids = [str(uuid.uuid4()) for _ in chunks]
-        chunk_metadatas = [
-            {
-                "file_id": file_id,
-                "filename": filename,
-                "chunk_index": idx
-            }
-            for idx in range(len(chunks))
-        ]
+# ------------------------------
+# Step 6: Save file metadata in DB
+# ------------------------------
+def save_file_metadata(filename: str, file_type: str, size: int, chunks_count: int) -> str:
+    db: Session = SessionLocal()
+    file_id = str(uuid.uuid4())
+    db_file = FileModel(
+        id=file_id,
+        filename=filename,
+        filetype=file_type,
+        size_bytes=size,
+        chunks_count=chunks_count,
+        embeddings_count=chunks_count,
+        status="embedded"
+    )
+    db.add(db_file)
+    db.commit()
+    db.close()
+    return file_id
 
-        # 4. Batch embeddings - use embed_documents if available or embed_query in list form
-        # HuggingFaceEmbeddings (langchain wrapper) may expose embed_documents or embed_query; try embed_documents first
-        try:
-            chunk_embeddings = embedding_model.embed_documents(chunks) 
-            print("Batch embedding completed")  # batch
-        except AttributeError:
-            # fallback to per-chunk (still ok but slower)
-            chunk_embeddings = [embedding_model.embed_query(c) for c in chunks]
+# ------------------------------
+# Main processing function
+# ------------------------------
+def process_file_upload_sync(file_bytes: bytes, filename: str):
+    content, file_type = extract_text_from_bytes(file_bytes, filename)
+    chunks = split_text_chunks(content)
+    file_id = str(uuid.uuid4())
+    metadatas = create_chunk_metadatas(file_id, filename, chunks)
+    embeddings = embed_chunks(chunks)
+    store_chunks_in_chroma(chunks, metadatas, embeddings)
+    save_file_metadata(filename, file_type, len(file_bytes), len(chunks))
+    return {"file_id": file_id, "chunks_count": len(chunks), "status": "processed"}
 
-        # 5. Add to Chroma
-        try:
-            collection.add(
-                documents=chunks,
-                metadatas=chunk_metadatas,
-                ids=chunk_ids,
-                embeddings=chunk_embeddings
-            )
-        except Exception as e:
-            # If vectorstore add failed, do not commit DB
-            raise
 
-        # 6. Save file metadata to DB (create and commit)
-        try:
-            db_file = FileModel(
-                id=file_id,
-                filename=filename,
-                filetype=file_type,
-                size_bytes=len(file_bytes),
-                chunks_count=len(chunks),
-                embeddings_count=len(chunks),
-                status="embedded"
-            )
-            db.add(db_file)
-            db.commit()
-        except SQLAlchemyError as e:
-            # DB commit failed -> best-effort cleanup in Chroma: remove the chunk ids
-            try:
-                collection.delete(ids=chunk_ids)
-            except Exception:
-                pass
-            db.rollback()
-            raise
 
-        return {"file_id": file_id, "chunks_count": len(chunks), "status": "processed"}
-
-    finally:
-        db.close()
