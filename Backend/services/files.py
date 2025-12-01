@@ -5,8 +5,12 @@ from database import SessionLocal
 from models import FileModel
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
+
 from clients.embedding_client import get_hf_embeddings as get_embedding_model
 from clients.vectordb_client import get_collection as get_chroma_collection
+
+
+
 
 # ------------------------------
 # Step 1: Extract text
@@ -36,8 +40,8 @@ def split_text_chunks(content: str, chunk_size: int = 500, overlap: int = 50) ->
 # ------------------------------
 # Step 3: Create metadata
 # ------------------------------
-def create_chunk_metadatas(file_id: str, filename: str, chunks: List[str]):
-    return [{"file_id": file_id, "filename": filename, "chunk_index": idx} for idx in range(len(chunks))]
+def create_chunk_metadatas(file_id: str, filename: str, chunks: List[str], user_id: str):
+    return [{"file_id": file_id, "filename": filename, "chunk_index": idx, "user_id": user_id} for idx in range(len(chunks))]
 
 # ------------------------------
 # Step 4: Embed chunks
@@ -61,11 +65,13 @@ def store_chunks_in_chroma(chunks: List[str], metadatas: List[dict], embeddings:
 # ------------------------------
 # Step 6: Save file metadata in DB
 # ------------------------------
-def save_file_metadata(filename: str, file_type: str, size: int, chunks_count: int) -> str:
-    db: Session = SessionLocal()
+
+def save_file_metadata(user_id: str, filename: str, file_type: str, size: int, chunks_count: int) -> str:
+    db = SessionLocal()
     file_id = str(uuid.uuid4())
     db_file = FileModel(
         id=file_id,
+        user_id=user_id,  # NEW
         filename=filename,
         filetype=file_type,
         size_bytes=size,
@@ -81,14 +87,14 @@ def save_file_metadata(filename: str, file_type: str, size: int, chunks_count: i
 # ------------------------------
 # Main processing function
 # ------------------------------
-def process_file_upload_sync(file_bytes: bytes, filename: str):
+def process_file_upload_sync(file_bytes: bytes, filename: str, user_id: str) -> dict:
     content, file_type = extract_text_from_bytes(file_bytes, filename)
     chunks = split_text_chunks(content)
     file_id = str(uuid.uuid4())
-    metadatas = create_chunk_metadatas(file_id, filename, chunks)
+    metadatas = create_chunk_metadatas(file_id, filename, chunks, user_id)
     embeddings = embed_chunks(chunks)
     store_chunks_in_chroma(chunks, metadatas, embeddings)
-    save_file_metadata(filename, file_type, len(file_bytes), len(chunks))
+    save_file_metadata(user_id, filename, file_type, len(file_bytes), len(chunks))
     return {"file_id": file_id, "chunks_count": len(chunks), "status": "processed"}
 
 

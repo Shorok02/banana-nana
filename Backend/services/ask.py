@@ -11,17 +11,17 @@ load_dotenv()
 # 1) Build retriever
 # ------------------------------
 
-def get_retriever(k: int = 5):
+def get_retriever(user_id: str, k: int = 5):
     db = get_chroma_db()
-    return db.as_retriever(search_kwargs={"k": k})
+    return db.as_retriever(search_kwargs={"k": k , "filter": {"user_id": user_id}})
 
 
 # ------------------------------
 # 2) Retrieve chunks
 # ------------------------------
 
-def retrieve_chunks(query: str, k: int = 5) -> List[Dict]:
-    retriever = get_retriever(k)
+def retrieve_chunks(query: str, user_id: str, k: int = 5) -> List[Dict]:
+    retriever = get_retriever(user_id, k)
     # MUST call private method due to current LangChain implementation
     docs = retriever._get_relevant_documents(query, run_manager=None)
     return [{"content": d.page_content, "metadata": d.metadata} for d in docs]
@@ -38,8 +38,8 @@ def generate_answer(query: str, context: str) -> str:
 # ------------------------------
 # 4) Ask question (main entry)
 # ------------------------------
-def ask_question(query: str, k: int = 5) -> Dict:
-    chunks = retrieve_chunks(query, k)
+def ask_question(query: str, user_id: str, k: int = 5) -> Dict:
+    chunks = retrieve_chunks(query, user_id, k)
     context = "\n---\n".join([c["content"] for c in chunks])
     response_text = generate_answer(query, context)
     return {

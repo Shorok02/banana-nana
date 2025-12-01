@@ -87,6 +87,8 @@ from services.files import process_file_upload_sync
 from services.ask import ask_question
 from database import get_db
 from models import FileModel
+from tkinter.tix import Form
+from auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/api", tags=["API"])
 
@@ -95,6 +97,7 @@ router = APIRouter(prefix="/api", tags=["API"])
 @router.post("/upload")
 async def upload_files(
     background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_user),
     files: List[UploadFile] = File(...),
 ):
     """
@@ -109,7 +112,8 @@ async def upload_files(
                 results.append({"filename": f.filename, "status": "skipped", "reason": "file too large"})
                 continue
 
-            background_tasks.add_task(process_file_upload_sync, data, f.filename)
+            background_tasks.add_task(process_file_upload_sync, data, f.filename, user_id)
+            
             results.append({"filename": f.filename, "status": "queued"})
         except Exception as e:
             results.append({"filename": f.filename, "status": "error", "reason": str(e)})
@@ -119,8 +123,8 @@ async def upload_files(
 
 # ----- List uploaded docs metadata -----
 @router.get("/docs")
-def list_docs(db: Session = Depends(get_db)):
-    files = db.query(FileModel).all()
+def list_docs(user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    files = db.query(FileModel).filter(FileModel.user_id == user_id).all()
     return [
         {
             "id": f.id,
@@ -141,9 +145,9 @@ class AskRequest(BaseModel):
 
 
 @router.post("/ask")
-async def ask_endpoint(payload: AskRequest):
+async def ask_endpoint(payload: AskRequest, user_id: str = Depends(get_current_user)):
     """
     Ask a question based on uploaded files.
     """
-    response = ask_question(payload.question, payload.k)
+    response = ask_question(payload.question, user_id, payload.k)
     return response

@@ -1,5 +1,6 @@
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Table
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from database import Base
 
 class FileModel(Base):
@@ -13,3 +14,4 @@ class FileModel(Base):
     embeddings_count = Column(Integer, nullable=True)  # number of embeddings saved
     status = Column(String, default="stored")          # stored / processed / embedded
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(String, nullable=False)   # <--- important!

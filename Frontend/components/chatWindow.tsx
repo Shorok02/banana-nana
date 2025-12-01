@@ -1,14 +1,31 @@
-import ChatMessage from "./chatMessage";
+// components/chatWindow.tsx
+"use client";
 
-interface ChatWindowProps {
-  messages: { content: string; sender: "user" | "bot" }[];
+interface Message {
+  content: string;
+  sender: "user" | "bot";
+  sources?: any[];
 }
 
-export default function ChatWindow({ messages }: ChatWindowProps) {
+interface ChatWindowProps {
+  messages: Message[];
+  className?: string; // ✅ Add this
+}
+
+export default function ChatWindow({ messages, className }: ChatWindowProps) {
   return (
-    <div className="flex flex-col overflow-y-auto h-[500px] border p-4 rounded space-y-2">
-      {messages.map((msg, i) => (
-        <ChatMessage key={i} content={msg.content} sender={msg.sender} />
+    <div className={`flex-1 overflow-y-auto space-y-2 ${className}`}>
+      {messages.map((msg, idx) => (
+        <div
+          key={idx}
+          className={`p-2 rounded-lg max-w-xs break-words ${
+            msg.sender === "user"
+              ? "bg-yellow-200 text-yellow-900 ml-auto"
+              : "bg-white text-gray-800"
+          }`}
+        >
+          {msg.content}
+        </div>
       ))}
     </div>
   );
