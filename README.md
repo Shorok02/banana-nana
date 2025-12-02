@@ -1,31 +1,27 @@
 # banana-nana
- 
-## Ask endpoint and LLM providers
 
-The project includes a POST `/api/ask` endpoint (see `Backend/routers/ask.py`) that uses LangChain retriever + an LLM Chain pattern to retrieve relevant chunks from ChromaDB and return a mocked answer. The endpoint is intentionally mocked for development to avoid relying on external, paid LLM providers.
+## to run the code do the following , after cloning the project: ; 
 
-- Example request:
+1- create a .env file in the **root directory** and include in it the code below 
 
-```
-POST /api/ask
-Content-Type: application/json
+**banana-nana\.env**:
 
-{ "question": "What is the warranty?" }
-```
+GROQ_API_KEY=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
+ALLOWED_EXTENSIONS = {".txt", ".pdf", ".docx"}
+MAX_SIZE_MB = 50 * 1024 * 1024
 
-Returns:
-```
-{ "answer": "...analysis...", "sources": [{"file_id": "...", "filename": "example.pdf"}]}
-```
+2- create a .env.local filein the **frontend** and add include in it the code below 
 
-### Mock behavior (default)
+**banana-nana\Frontend\.env.local**: 
 
-This project is configured to always return a mocked answer to `POST /api/ask`, while still performing retrieval so the returned `sources` reflect the most relevant chunks stored in ChromaDB. This avoids external LLM dependency and simplifies development.
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+GOOGLE_CLIENT_ID=1053522225541-mjtajva9itdoqk9rldeqdscs0171a7bp.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=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
+NEXTAUTH_URL=http://localhost:3000   
+NEXTAUTH_SECRET=some-random-secret  
 
-If you want to switch to a real LLM provider later, you can update the service to use your chosen provider (OpenAI, Hugging Face, or a local model).
+3- run **docker compose up --build**
 
-### Environment variables (common)
+## documentation is available through swagger : 
+http://127.0.0.1:8000/docs
 
-The endpoint is mocked in this codebase by default; environment variables related to OpenAI or HF are not used.
-
-If you need help configuring a free local model or adding a Hugging Face based LLM provider, ask and I can provide step-by-step instructions.
