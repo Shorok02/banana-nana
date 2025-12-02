@@ -4,7 +4,7 @@
 
 ### 1- create a .env file in the **root directory** and include in it the code below (banana-nana\.env): 
 
-    **banana-nana\.env**:
+    **banana-nana\ .env**:
     
     GROQ_API_KEY=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
     
@@ -12,7 +12,7 @@
     
     MAX_SIZE_MB = 50 * 1024 * 1024
 
-### 2- create a .env.local filein the **frontend** and add include in it the code below (banana-nana\Frontend \.env.local): 
+### 2- create a .env.local filein the **frontend** and add include in it the code below (banana-nana\Frontend\ .env.local): 
     
     NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
     
