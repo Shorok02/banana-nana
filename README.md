@@ -2,9 +2,7 @@
 
 ## to run the code do the following , after cloning the project:
 
-### 1- create a .env file in the **root directory** and include in it the code below (banana-nana\.env): 
-
-    **banana-nana\ .env**:
+### 1- create a .env file in the **root directory** and include in it the code below (banana-nana\ .env): 
     
     GROQ_API_KEY=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
     
