@@ -1,6 +1,6 @@
 # banana-nana
 
-## to run the code do the following , after cloning the project: ; 
+## to run the code do the following , after cloning the project:
 
 ### 1- create a .env file in the **root directory** and include in it the code below (banana-nana\.env): 
 
@@ -12,7 +12,7 @@
     
     MAX_SIZE_MB = 50 * 1024 * 1024
 
-### 2- create a .env.local filein the **frontend** and add include in it the code below (banana-nana\Frontend\.env.local): 
+### 2- create a .env.local filein the **frontend** and add include in it the code below (banana-nana\Frontend \.env.local): 
     
     NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
     
