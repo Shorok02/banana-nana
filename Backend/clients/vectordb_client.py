@@ -1,3 +1,5 @@
+from langchain_community.vectorstores import Chroma
+from clients.embedding_client import get_hf_embeddings
 
 def get_client():
     import chromadb
@@ -10,9 +12,6 @@ def get_collection(name="file_chunks"):
     return client.get_or_create_collection(name=name)
 
 def get_chroma_db():
-    from langchain_community.vectorstores import Chroma
-    from clients.embedding_client import get_hf_embeddings
-
     return Chroma(
         persist_directory="chromadb_data",
         collection_name="file_chunks",

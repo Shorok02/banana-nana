@@ -39,11 +39,17 @@ def generate_answer(query: str, context: str) -> str:
 # 4) Ask question (main entry)
 # ------------------------------
 def ask_question(query: str, user_id: str, k: int = 5) -> Dict:
-    chunks = retrieve_chunks(query, user_id, k)
-    context = "\n---\n".join([c["content"] for c in chunks])
-    response_text = generate_answer(query, context)
-    return {
-        "query": query,
-        "answer": response_text,
-        "sources": chunks
-    }
+    try:
+        chunks = retrieve_chunks(query, user_id, k)
+        context = "\n---\n".join([c["content"] for c in chunks])
+        response_text = generate_answer(query, context)
+        print(chunks)
+
+        return {
+            "query": query,
+            "answer": response_text,
+            "sources": chunks
+        }
+    except Exception as e:
+        print(f"Error in ask_question: {str(e)}")
+        raise RuntimeError(f"Error in ask_question: {str(e)}")

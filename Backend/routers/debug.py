@@ -1,7 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from services.files import get_chroma_collection, get_embedding_model
+from clients.vectordb_client import get_collection
 from models import FileModel
 
 router = APIRouter(prefix="/debug", tags=["Debug"])
@@ -29,7 +29,7 @@ async def debug_chroma():
     Debug endpoint to inspect ChromaDB collection.
     Prints documents, embeddings, and metadata stored in the collection.
     """
-    collection = get_chroma_collection()
+    collection = get_collection()
 
     # Only include safe fields
     all_data = collection.get(include=["documents", "metadatas", "embeddings"])
