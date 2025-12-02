@@ -3,13 +3,12 @@ from sqlalchemy.orm import Session
 from models import FileModel
 from database import SessionLocal
 
-def save_file_metadata(user_id: str, filename: str, file_type: str, size: int, chunks_count: int) -> str:
+def save_file_metadata(file_id: str, user_id: str, filename: str, file_type: str, size: int, chunks_count: int) -> str:
     """
     Save file metadata to SQL DB
     """
     db: Session = SessionLocal()
     try:
-        file_id = str(uuid.uuid4())
         db_file = FileModel(
             id=file_id,
             user_id=user_id,
@@ -36,8 +35,10 @@ def update_file_status(file_id: str, status: str):
     db: Session = SessionLocal()
     try:
         db_file = db.query(FileModel).filter(FileModel.id == file_id).first()
+        print(f"Updating status for file_id in update file method: {file_id} to {status}")
         if db_file:
             db_file.status = status
+            print(f"Status updated to {status} for file_id: {file_id}")
             db.commit()
     except Exception as e:
         db.rollback()

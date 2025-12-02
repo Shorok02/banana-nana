@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from clients.vectordb_client import get_collection

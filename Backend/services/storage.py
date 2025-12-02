@@ -1,8 +1,5 @@
 # services/storage.py
 import uuid
-from sqlalchemy.orm import Session
-from models import FileModel
-from database import SessionLocal
 from clients.vectordb_client import get_chroma_db
 
 def create_chunk_metadatas(file_id: str, filename: str, chunks: list, user_id: str, file_type: str ) -> list:

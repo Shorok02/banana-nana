@@ -1,6 +1,5 @@
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Table
+from sqlalchemy import Column, String, Integer, DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
 from database import Base
 
 class FileModel(Base):
